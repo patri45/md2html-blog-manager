@@ -1,4 +1,5 @@
 import os, time
+import tool
 
 
 class Cancel(Exception): pass
@@ -8,23 +9,6 @@ class Quit(Exception):
     def __str__(self):
         return ("quit...")
 
-class Tool:
-    def initialize_if_childList_is_null_of(self, index, parent_list):
-        while True:
-            if index > len(parent_list) - 1:
-                parent_list.append([])
-            else:
-                break
-
-    def is_int(self, s):
-        try:
-            int(s)
-            return True
-        except ValueError:
-            return False
-
-    def open_file(self, file_path):
-        os.system('"' + file_path + '"')
 
 class BlogManager:
     def __init__(self):
@@ -36,11 +20,11 @@ class BlogManager:
             "q": ["raise Quit"],
             "c": ["os.system('cls')"],
             "ll": ["self._show_files_in_user_path()"],
-            "l":["self._show_user_path()"],
+            "l": ["self._show_user_path()"],
             "la": ["self._show_content_structure()"],
             "lf": ["self._show_content_themes()"],
             "ls": ["self._show_content_topics()"],
-            "lt":["self._show_content_titles()"],
+            "lt": ["self._show_content_titles()"],
         }
         self.OPERATION_COMMANDS = {"~": ["self._search_mode()"],
                                    "+": ["self._add_mode()"],
@@ -56,7 +40,7 @@ class BlogManager:
         self.HINTS = {"add": [],
                       }
 
-        self.tool=Tool()
+        self.tool = tool.Tool()
 
         self.content_files_path_dict = {}
         self.content_structure_dict = {}
@@ -65,6 +49,7 @@ class BlogManager:
         self.mode = None
         self.user_input = ""
         self.user_path = []
+        self.user_got_file_path = ""
 
     def _initialize(self):
         self._load_files_in_content()
@@ -72,20 +57,23 @@ class BlogManager:
         self._initialize_content_structure()
 
     def _load_files_in_content(self):
-        self.content_files_path_dict.clear() # 暂时用于重新初始化，待升级
+        self.content_files_path_dict.clear()  # 暂时用于重新初始化，待升级
         for root, dirs, files in os.walk(self.BLOG_MD_CONTENT_ROOT):
+            for d in dirs:
+                self.content_files_path_dict[d] = os.path.join(root, d).replace('\\', '/')
             for f in files:
-                self.content_files_path_dict[f.split('.')[0]] = os.path.join(root, f).replace('\\', '/')
+                f_name = f.split('.')[0]
+                self.content_files_path_dict[f_name] = os.path.join(root, f_name).replace('\\', '/')
 
     def _classify_topics_by_layers_in(self):
-        self.topics_in_layers=[] # 暂时用于重新初始化，待升级
+        self.topics_in_layers = []  # 暂时用于重新初始化，待升级
         for name, path in self.content_files_path_dict.items():
             dir_num = path.replace(self.BLOG_MD_CONTENT_ROOT, '').count('/')
             self.tool.initialize_if_childList_is_null_of(dir_num - 1, self.topics_in_layers)
             self.topics_in_layers[dir_num - 1].append(name)
 
     def _initialize_content_structure(self):
-        self.content_structure_dict.clear() # 暂时用于重新初始化，待升级
+        self.content_structure_dict.clear()  # 暂时用于重新初始化，待升级
         for name, path in self.content_files_path_dict.items():
             file_layer_path = path.replace(self.BLOG_MD_CONTENT_ROOT, '').split(".")[0]
             file_layer_path = file_layer_path.strip("/")
@@ -114,7 +102,7 @@ class BlogManager:
         print()
 
     def _show_content_themes(self):
-        print("Themes >> ",end="")
+        print("Themes >> ", end="")
         files = " | ".join(self.topics_in_layers[0])
         print(files)
 
@@ -130,14 +118,14 @@ class BlogManager:
 
     def _show_files_in_user_path(self):
         print("Local files >> ", end="")
-        result=self._get_files_in_target_path_by(self.user_path)
+        result = self._get_files_in_target_path_by(self.user_path)
         files = " | ".join(result)
         print(files)
 
     def _show_user_path(self):
         print("Path >> ", end="")
-        if self.user_path!=[]:
-            dirs = " | ".join(self.user_path)
+        if self.user_path != []:
+            dirs = " / ".join(self.user_path)
             print(dirs)
         else:
             print("ROOT")
@@ -170,13 +158,13 @@ class BlogManager:
         else:
             print("no command...")
 
-    def _input_number(self,prompt):
+    def _input_number(self, prompt):
         while True:
             self.user_input = input(prompt)
             c = self.user_input
             if self.tool.is_int(c):
                 break
-            elif c=="":
+            elif c == "":
                 raise Cancel
             else:
                 print("input is not number")
@@ -185,10 +173,10 @@ class BlogManager:
         hints = "hints: a. all | f. themes | s. topics | t. titles"
         c = self.user_input.lower()
         search_layer = -1
-        search_keyword=""
+        search_keyword = ""
         is_search = False
 
-        if len(c)>=3 and c[2] == ".":  # 判断是否有副指令
+        if len(c) >= 3 and c[2] == ".":  # 判断是否有副指令
             sub_command = c[1]
             if len(c) - 3 > 0:  # 判断是否有文件名
                 search_keyword = c[3:]
@@ -212,12 +200,14 @@ class BlogManager:
             else:
                 print("no search file name")
 
-        if is_search: # 判断是否满足进行搜索的条件
+        if is_search:  # 判断是否满足进行搜索的条件
             result = self._search_keyword_in_(search_keyword, search_layer)
             if result != []:
                 file = self._getfile_by_number(result)
                 file_path = self.content_files_path_dict[file]
-                self.tool.open_file(file_path)
+                self.user_got_file_path = file_path
+                print(file + " is got")
+                # self.tool.open_file(file_path)
                 # self._openfile_by_number(result)
             else:
                 print("Sorry,no match...")
@@ -244,51 +234,53 @@ class BlogManager:
 
     def _open_file_mode(self):
         c = self.user_input.lower()
-
-        if len(c.split("/")) <=3: # 判断输入路径是否超过 theme topic title 的限制
-            if len(c)>=3 and c[2] == ".": # 判断是否有副指令
-                sub_command=c[1]
-                if len(c)-3>0: # 判断是否有文件名
+        c_slash_num = c.count("/")
+        if c_slash_num <= 3:  # 判断输入路径是否超过 theme topic title 的限制
+            if len(c) == 2 and c[-1] == "?":  # /?. 打开got文件
+                file_path = self.user_got_file_path
+                if file_path != "":
+                    file_name = file_path.split("/")[-1]
+                    if file_name not in self.topics_in_layers[0] and file_name not in self.topics_in_layers[
+                        1]:  # theme topic无文件，不能打开
+                        print("open title " + file_name)
+                        time.sleep(1)
+                        self.tool.open_file(file_path + ".md")
+                    else:
+                        print("cannot open theme or topic")
+                else:
+                    print("you got no file")
+            elif len(c) >= 3 and c[2] == ".":  # 判断是否有副指令
+                sub_command = c[1]
+                if len(c) - 3 > 0:  # 判断是否有文件名
                     file_name = c[3:]
                     if sub_command == "l":  # /l. 打开本地文件 在user path直接打开
-                        completed_file_name=self._auto_file_completion(file_name,self.user_path)
-                        if completed_file_name!="":
-                            parent_path = "/".join(self.user_path)
-                            file_path = self.BLOG_MD_CONTENT_ROOT + "/" + parent_path + "/" + completed_file_name + ".md"
-                            print("open " + file_path)
-                            time.sleep(1)
-                            self.tool.open_file(file_path)
-                    elif sub_command=="f":  # /f. 打开theme文件
-                        result = self._auto_layers_completion(file_name,0)
-                        if result != "":
-                            file_path = self.BLOG_MD_CONTENT_ROOT + "/" + result + ".md"
-                            # print(file_path)
-                            print("open theme " + result)
-                            time.sleep(1)
-                            self.tool.open_file(file_path)
-                    elif sub_command=="s":  # /s. 打开topic文件
-                        file_name = c[3:]
-                        result = self._auto_layers_completion(file_name,1)
-                        if result != "":
-                            file_path = self.content_files_path_dict[result]
-                            # print(file_path)
-                            print("open topic " + result)
-                            time.sleep(1)
-                            self.tool.open_file(file_path)
-                    elif sub_command=="t":  # /t. 打开title文件
-                        result = self._auto_layers_completion(file_name,2)
+                        if self.user_path != [] and len(self.user_path) != 1:  # theme topic 无文件，不能打开
+                            completed_file_name = self._auto_file_completion(file_name, self.user_path)
+                            if completed_file_name != "":
+                                parent_path = "/".join(self.user_path)
+                                file_path = self.BLOG_MD_CONTENT_ROOT + "/" + parent_path + "/" + completed_file_name + ".md"
+                                print("open " + file_path)
+                                time.sleep(1)
+                                self.tool.open_file(file_path)
+                        else:
+                            print("cannot open theme or topic")
+                    elif sub_command == "t":  # /t. 打开title文件
+                        result = self._auto_layers_completion(file_name, 2)
                         if result != "":
                             file_path = self.content_files_path_dict[result]
                             # print(file_path)
                             print("open title " + result)
                             time.sleep(1)
-                            self.tool.open_file(file_path)
+                            self.tool.open_file(file_path + ".md")
                     else:
                         print("no sub command")
                 else:
                     print("no open file name")
             else:  # / 默认打开文件 直接根据标准目录输入打开
-                if len(c) >= 2:
+                words_without_slashes = len(c) - c_slash_num
+                if c_slash_num <= 2 and words_without_slashes > 0:
+                    print("cannot open theme or topic")
+                elif c_slash_num == 3 and words_without_slashes > 0:
                     input_layer_list = c[1:].split("/")
                     result = self._auto_path_completion(input_layer_list)
                     if result != []:
@@ -304,52 +296,68 @@ class BlogManager:
         else:
             print("exceed layer limit")
 
-    def _judge_is_dir(self,layer_num):
-        result=True
-        if layer_num>=2:
+    def _judge_is_dir(self, layer_num):
+        result = True
+        if layer_num >= 2:
             print("You cannot enter file")
-            result=False
+            result = False
         return result
 
     def _enter_dir_mode(self):
         c = self.user_input.lower()
 
-        if len(c.split("/")) <=2: # 判断输入路径是否超过 theme topic 的限制
-            if len(c)==3 and c[1:]=="..": # >.. 进入父目录的父目录 根据user path直接进入
-                if self.user_path == [] or len(self.user_path) == 1 or len(self.user_path)==2:
+        if c.count("/") <= 1:  # 判断输入路径是否超过 theme topic 的限制
+            if len(c) == 3 and c[1:] == "..":  # >.. 进入父目录的父目录 根据user path直接进入
+                if self.user_path == [] or len(self.user_path) == 1 or len(self.user_path) == 2:
                     self.user_path = []
                 else:
                     self.user_path = self.user_path[:-2]
                 path = " / ".join(self.user_path)
                 print("enter " + path)
-            elif len(c)==2 and c[-1]==".":  # >. 进入父目录 根据user path直接进入
+            elif len(c) == 2 and c[-1] == ".":  # >. 进入父目录 根据user path直接进入
                 if self.user_path == [] or len(self.user_path) == 1:
                     self.user_path = []
                 else:
                     self.user_path = self.user_path[:-1]
                 path = " / ".join(self.user_path)
                 print("enter " + path)
-            elif len(c)>=3 and c[2] == ".": # 判断是否有副指令
-                sub_command=c[1]
-                if len(c)-3>0: # 判断是否有文件名
+            elif len(c) == 2 and c[-1] == "?":  # >? 进入got目录
+                file_path = self.user_got_file_path
+                if file_path != "":
+                    file_path_list = file_path.replace(self.BLOG_MD_CONTENT_ROOT + "/", "").split("/")
+                    if len(file_path_list) <= 2:
+                        self.user_path = file_path_list
+                        path = " / ".join(file_path_list)
+                        print("enter " + path)
+                    else:
+                        print("cannot enter file")
+                else:
+                    print("you got no file")
+
+            elif len(c) >= 3 and c[2] == ".":  # 判断是否有副指令
+                sub_command = c[1]
+                if len(c) - 3 > 0:  # 判断是否有文件名
                     file_name = c[3:]
                     if sub_command == "l":  # >l. 进入当前目录下级文档 在user path直接进入
-                        result=self._auto_file_completion(file_name,self.user_path)
-                        if result!="":
+                        result = self._auto_file_completion(file_name, self.user_path)
+                        if result != "" and result not in self.topics_in_layers[2]:
                             self.user_path.append(result)
                             path = " / ".join(self.user_path)
                             print("enter " + path)
-                    elif sub_command=="f":  # >f. 进入theme文档
-                        result = self._auto_layers_completion(file_name,0)
-                        if result!="":
-                            self.user_path=self._get_path_list_of(result)
+                        else:
+                            print("cannot enter file")
+                    elif sub_command == "f":  # >f. 进入theme文档
+                        print(file_name)
+                        result = self._auto_layers_completion(file_name, 0)
+                        if result != "":
+                            self.user_path = self._get_path_list_of(result)
                             path = " / ".join(self.user_path)
                             print("enter " + path)
-                    elif sub_command=="s":  # >s. 进入topic文档
+                    elif sub_command == "s":  # >s. 进入topic文档
                         file_name = c[3:]
-                        result = self._auto_layers_completion(file_name,1)
-                        if result!="":
-                            self.user_path=self._get_path_list_of(result)
+                        result = self._auto_layers_completion(file_name, 1)
+                        if result != "":
+                            self.user_path = self._get_path_list_of(result)
                             path = " / ".join(self.user_path)
                             print("enter " + path)
                     else:
@@ -361,73 +369,72 @@ class BlogManager:
                     input_layer_list = c[1:].split("/")
                     result = self._auto_path_completion(input_layer_list)
                     if result != []:
-                        self.user_path=result
+                        self.user_path = result
                         path = " / ".join(self.user_path)
                         print("enter " + path)
                 else:
                     print("no enter dir name")
 
         else:
-            print("You cannot enter file")
+            print("cannot enter file")
 
-    def _get_path_list_of(self,file_name):
-        path=self.content_files_path_dict[file_name].replace(".md","").replace(self.BLOG_MD_CONTENT_ROOT,"")
-        result=path.split("/")
+    def _get_path_list_of(self, file_name):
+        path = self.content_files_path_dict[file_name].replace(self.BLOG_MD_CONTENT_ROOT, "")
+        result = path.split("/")
         return result
 
     def _get_files_in_target_path_by(self, path_list):
-        result=[]
-        path_num=len(path_list)
-        if path_list!=[]: # 判断是否为根目录
-            if path_num>2: # 判断是否超过目录层级限制
+        result = []
+        path_num = len(path_list)
+        if path_list != []:  # 判断是否为根目录
+            if path_num > 2:  # 判断是否超过目录层级限制
                 print("exceed layer limit")
-            elif path_num==2: # 判断是否为topic
-                if path_list[0] in self.content_structure_dict.keys() and path_list[1] in self.content_structure_dict[path_list[0]].keys(): # 判断是否存在topic
+            elif path_num == 2:  # 判断是否为topic
+                if path_list[0] in self.content_structure_dict.keys() and path_list[1] in self.content_structure_dict[path_list[0]].keys():  # 判断是否存在topic
                     result = self.content_structure_dict[path_list[0]][path_list[1]]
-            else: # 判断是否为theme
-                if path_list[0] in self.content_structure_dict.keys(): # 判断是否存在theme
-                    result=self.content_structure_dict[path_list[0]]
+            else:  # 判断是否为theme
+                if path_list[0] in self.content_structure_dict.keys():  # 判断是否存在theme
+                    result = self.content_structure_dict[path_list[0]]
         else:
-            result=self.topics_in_layers[0]
+            result = self.topics_in_layers[0]
         return result
 
-    def _auto_layers_completion(self,file_name,layer):
-        result=""
-        possible_results_list=[]
-        files=self.topics_in_layers[int(layer)]
+    def _auto_layers_completion(self, file_name, layer):
+        result = ""
+        possible_results_list = []
+        files = self.topics_in_layers[int(layer)]
 
         for file in files:
             if file_name.lower() in file.lower():
                 possible_results_list.append(file)  # 将可能的结果添加到possible path list
 
-        if len(possible_results_list)>1:
+        if len(possible_results_list) > 1:
             file = self._getfile_by_number(possible_results_list)
             # print(file)
             if file != "":
-                result=file
-        elif len(possible_results_list)==1:
-            result=possible_results_list[0]
+                result = file
+        elif len(possible_results_list) == 1:
+            result = possible_results_list[0]
         else:
             print("Sorry,no match...")
         return result
 
-
     def _auto_file_completion(self, file_name, parent_path_list):
-        result=""
-        possible_results_list=[]
-        files=self._get_files_in_target_path_by(parent_path_list)
-        if files !=[]:
+        result = ""
+        possible_results_list = []
+        files = self._get_files_in_target_path_by(parent_path_list)
+        if files != []:
             for file in files:
                 if file_name.lower() in file.lower():
                     possible_results_list.append(file)
 
-        if len(possible_results_list)>1:
+        if len(possible_results_list) > 1:
             file = self._getfile_by_number(possible_results_list)
             # print(file)
             if file != "":
-                result=file
-        elif len(possible_results_list)==1:
-            result=possible_results_list[0]
+                result = file
+        elif len(possible_results_list) == 1:
+            result = possible_results_list[0]
         else:
             print("Sorry,no match...")
         return result
@@ -486,27 +493,23 @@ class BlogManager:
 
         if not os.path.isdir(theme_path):  # 无theme时创建theme文件夹和文件
             os.makedirs(theme_path)
-            f = open(theme_path + ".md", mode="w", encoding="utf-8")
-            f.close()
-            print("add theme "+path_list[0]+"... Done!")
+            print("add theme " + path_list[0] + "... Done!")
         if topic_path != "" and not os.path.isdir(topic_path):  # 无theme时创建topic文件夹和文件
             os.makedirs(topic_path)
-            f = open(topic_path + ".md", mode="w", encoding="utf-8")
-            f.close()
-            print("add topic " + path_list[1]+"... Done!")
+            print("add topic " + path_list[1] + "... Done!")
         if title_path != "" and not os.path.isfile(title_path):  # 无title时创建title文件
             f = open(title_path, mode="w", encoding="utf-8")
             f.close()
-            print("add title " + path_list[2]+"... Done!")
+            print("add title " + path_list[2] + "... Done!")
 
     def _add_mode(self):
         c = self.user_input
-        is_created=False
+        is_created = False
 
-        if len(c.split("/")) <=3: # 判断输入路径是否超过 theme topic title 的限制
-            if len(c)>=3 and c[2] == ".": # 判断是否有副指令
-                sub_command=c[1]
-                if len(c)-3>0: # 判断是否有文件名
+        if c.count("/") <= 2:  # 判断输入路径是否超过 theme topic title 的限制
+            if len(c) >= 3 and c[2] == ".":  # 判断是否有副指令
+                sub_command = c[1]
+                if len(c) - 3 > 0:  # 判断是否有文件名
                     if sub_command == "f":  # +f. 强制创建 创建输入路径中所有不存在的文件夹和文件
                         dirs_list = c[3:].split("/")
                         self._create_file(dirs_list)
@@ -523,9 +526,9 @@ class BlogManager:
                 else:
                     print("no add file name")
             else:  # + 默认创建 没有副指令
-                if len(c) >= 2:
+                if len(c) - 1 > 0:
                     dirs_list = []
-                    if len(c[1:].split("/")) > 1: #创建topic或者title，需要对路径进行自动补全
+                    if c.count("/") > 0:  # 创建topic或者title，需要对路径进行自动补全
                         dirs_newFile = c[1:].lower().split("/")
                         input_layer_list = dirs_newFile[:-1]
                         parent_dir_list = self._auto_path_completion(input_layer_list)
@@ -534,7 +537,7 @@ class BlogManager:
                             dirs_list.append(c[1:].split("/")[-1])
                             self._create_file(dirs_list)
                             is_created = True
-                    else: #创建theme，不需要对路径进行自动补全
+                    else:  # 创建theme，不需要对路径进行自动补全
                         dirs_list.append(self.user_input[1:])
                         self._create_file(dirs_list)
                         is_created = True
@@ -548,11 +551,10 @@ class BlogManager:
             self._initialize()
             pass
 
-
     def _getfile_by_number(self, result_list):
         result = ""
         self._print_result_by_number(result_list)
-        self._input_number("请输入打开文件序号:")
+        self._input_number("请输入序号:")
         c = self.user_input
         if 0 < int(c) <= len(result_list):
             result = result_list[int(c) - 1]
