@@ -13,7 +13,7 @@ class Add:
         self.tool = tool.Tool()
         self.data = data
         self.user_path = None
-        self.user_got_file_path = None
+        self.add_files_path_list=[]
 
     def run(self, user_input, user_path):
         c = user_input
@@ -29,6 +29,8 @@ class Add:
                 if self._is_keyword_in(c, 1):
                     keyword = c[1:]
                     self._add_file_by_path(keyword)
+
+        return self.add_files_path_list
 
     def _add_file_in_local_dir(self, keyword: str):
         path_list = []
@@ -121,8 +123,6 @@ class Add:
 
         if is_created:
             print("update database")
+            self.add_files_path_list.append(path_list)
         else:
             print("file is existed")
-
-    def _update_data(self):
-        self.data.load()

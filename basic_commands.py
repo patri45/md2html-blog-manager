@@ -39,7 +39,7 @@ class BasicCommands:
         for theme in self.data.get_themes():
             theme_fmt="{:<20} >> ".format(theme)
             print(theme_fmt, end="")
-            for topic in self.data.get_topics_in(theme):
+            for topic in self.data.get_child_files_in(theme):
                 print(topic + " | ", end="")
             print(end="\n")
 
@@ -60,7 +60,8 @@ class BasicCommands:
 
     def _look_files_in_user_path(self):
         print("Local files >> ")
-        result = self.data.get_files_in_target_path_by(self.user_path)
+        result = self.data.get_child_files_in(self.user_path[-1]) if self.user_path != [] else self.data.get_child_files_in(
+            'root')
         files = " | ".join(result)
         print(files)
 

@@ -15,6 +15,7 @@ class BlogManager:
         self.user_input = ""
         self.user_path = []
         self.user_got_file_path = ""
+        self.add_files_path_list=[]
 
     def _initialize(self):
         self.tool = tool.Tool()
@@ -40,28 +41,35 @@ class BlogManager:
                 except Cancel:
                     pass
                 print()
+                self.data.add(self.add_files_path_list)
+                self.add_files_path_list=[]
         except Quit:
             print("Blog Manager closed...")
 
     def _input_command(self, prompt):
         self.user_input = input(prompt)
-        c = self.user_input.lower()
+        c_list=self.user_input.split(",")
+        for c_input in c_list:
+            self._run_single_command(c_input)
+
+    def _run_single_command(self,c_input):
+        c = c_input.lower()
         if c in self.basic_cmds.CMDS:
-            self.user_path=self.basic_cmds.run(self.user_input,self.user_path)
+            self.user_path=self.basic_cmds.run(c_input,self.user_path)
         elif c[0] == self.hint_cmds.CMD:
-            self.hint_cmds.run(self.user_input)
+            self.hint_cmds.run(c_input)
         elif c[0] == self.search_cmds.CMD:
-            result=self.search_cmds.run(self.user_input)
+            result=self.search_cmds.run(c_input)
             if result!="":
                 self.user_got_file_path=result
             #print(self.user_got_file_path)
         elif c[0] == self.enter_cmds.CMD:
-            self.user_path = self.enter_cmds.run(self.user_input,self.user_path,self.user_got_file_path)
+            self.user_path = self.enter_cmds.run(c_input,self.user_path,self.user_got_file_path)
             #print(self.user_path)
         elif c[0] == self.open_cmds.CMD:
-            self.open_cmds.run(self.user_input, self.user_path, self.user_got_file_path)
+            self.open_cmds.run(c_input, self.user_path, self.user_got_file_path)
         elif c[0] == self.add_cmds.CMD:
-            self.add_cmds.run(self.user_input, self.user_path)
+            self.add_files_path_list=self.add_cmds.run(c_input, self.user_path)
         else:
             print("no command...")
 
